@@ -2,7 +2,6 @@
 
 Segment::~Segment()
 {
-    clearSeats();
 }
 
 int Segment::getNumberSeatingRows()
@@ -35,108 +34,71 @@ void Segment::setPrice(float _price)
     price = _price;
 }
 
-void Segment::updateData(int numberSeatingRows_, int numberSeatingColumns_, float price_)
-{
-    numberSeatingRows = numberSeatingRows_;
-    numberSeatingColumns = numberSeatingColumns_;
-    price = price_;
+void Segment::updateData(Font& font) {
+    if (isInitialized)
+        return;
 
-    seatOfSegment = new string * [numberSeatingRows];
-    for (int letter = 0; letter < numberSeatingRows; letter++)
-    {
-        seatOfSegment[letter] = new string[numberSeatingColumns];
-        for (int number = 0; number < numberSeatingColumns; number++)
-        {
+    seatOfSegment = new Button * [numberSeatingRows];
+    for (int row = 0; row < numberSeatingRows; row++) {
+        seatOfSegment[row] = new Button[numberSeatingColumns];
+        for (int col = 0; col < numberSeatingColumns; col++) {
             string seatLabel;
-            if (letter < 26) {
-                seatLabel = string(1, 'A' + letter);
+            if (row < 26) {
+                seatLabel = string(1, 'A' + row);
             }
             else {
-                char firstLetter = 'A' + (letter / 26) - 1;
-                char secondLetter = 'A' + (letter % 26);
+                char firstLetter = 'A' + (row / 26) - 1;
+                char secondLetter = 'A' + (row % 26);
                 seatLabel = string(1, firstLetter) + string(1, secondLetter);
             }
-            seatOfSegment[letter][number] = seatLabel + to_string(number + 1);
+            seatLabel += to_string(col + 1);
+            seatOfSegment[row][col] = Button(
+                Vector2f(40, 40),
+                Vector2f(300 + col * 50, 200 + row * 50),
+                font,
+                seatLabel,
+                Color::Green
+            );
+        }
+    }
+    isInitialized = true;
+}
+
+
+void Segment::drawSeats(RenderWindow& window) {
+    for (int row = 0; row < numberSeatingRows; row++) {
+        for (int col = 0; col < numberSeatingColumns; col++) {
+            seatOfSegment[row][col].draw(window);
         }
     }
 }
 
-void Segment::printSeats() 
-{
-    for (int i = 0; i < numberSeatingRows; i++)
-    {
-        for (int j = 0; j < numberSeatingColumns; j++)
-        {
-            if (seatOfSegment[i][j] != "XX")
-            {
-                cout << GREEN << "[ |_" << seatOfSegment[i][j] << "_| ] " << RESET;
-            }
-            else {
-                cout << RED << "[ |_" << seatOfSegment[i][j] << "_| ] " << RESET;
-            }
-        }
-        cout << endl;
-    }
-    cout << endl;
-}
-
-bool Segment::reserveSeat(string seatCode)
-{
-    for (int i = 0; i < numberSeatingRows; i++)
-    {
-        for (int j = 0; j < numberSeatingColumns; j++)
-        {
-            if (seatOfSegment[i][j] == seatCode) 
-            {
-                seatOfSegment[i][j] = "XX";
+bool Segment::reserveSeat(string seatCode) {
+    for (int row = 0; row < numberSeatingRows; row++) {
+        for (int col = 0; col < numberSeatingColumns; col++) {
+            if (seatOfSegment[row][col].getText() == seatCode) {
+                seatOfSegment[row][col].setFillColor(Color::Red); 
                 return true;
             }
         }
     }
     return false;
 }
-void Segment::resetSeats(string& seatCode)
-{
-    for (int i = 0; i < numberSeatingRows; i++)
-    {
-        for (int j = 0; j < numberSeatingColumns; j++)
-        {
-            if (seatOfSegment[i][j] == "XX")
-            {
-                seatOfSegment[i][j] = seatCode;
+void Segment::resetSeats(const std::string& seatCode) {
+    for (int row = 0; row < numberSeatingRows; row++) {
+        for (int col = 0; col < numberSeatingColumns; col++) {
+            if (seatOfSegment[row][col].getText() == seatCode) {
+                seatOfSegment[row][col].setFillColor(Color::Green);
                 return;
             }
         }
     }
 }
 
-bool Segment::isSeatReserved(string& seatCode)
-{
-    for (int i = 0; i < numberSeatingRows; ++i)
-    {
-        for (int j = 0; j < numberSeatingColumns; ++j)
-        {
-            if (seatOfSegment[i][j] == seatCode)
-            {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-int Segment::getTotalSeats() {
-    return numberSeatingColumns * numberSeatingRows;
-}
-
-bool Segment::isFullTheEvent()
-{
-    for (int i = 0; i < numberSeatingRows; i++)
-    {
-        for (int j = 0; j < numberSeatingColumns; j++)
-        {
-            if (seatOfSegment[i][j] != "XX")
-            {
+bool Segment::isFullTheEvent() {
+    for (int row = 0; row < numberSeatingRows; row++) {
+        for (int col = 0; col < numberSeatingColumns; col++) {
+            if (seatOfSegment[row][col].getFillColor() != sf::Color::Red) {
                 return false;
             }
         }
@@ -144,12 +106,31 @@ bool Segment::isFullTheEvent()
     return true;
 }
 
-void Segment::clearSeats()
-{
-    if (seatOfSegment != nullptr)
-    {
-        for (int i = 0; i < numberSeatingRows; i++)
-        {
+bool Segment::isSeatReserved(const std::string& seatCode) {
+    for (int row = 0; row < numberSeatingRows; row++) {
+        for (int col = 0; col < numberSeatingColumns; col++) {
+            if (seatOfSegment[row][col].getText() == seatCode) {
+                return seatOfSegment[row][col].getFillColor() == Color::Red;
+            }
+        }
+    }
+    return false;
+}
+
+bool Segment::hasPurchasedSeats() {
+    for (int i = 0; i < numberSeatingRows; i++) {
+        for (int j = 0; j < numberSeatingColumns; j++) {
+            if (seatOfSegment[i][j].getFillColor() == Color::Red) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void Segment::clearSeats() {
+    if (seatOfSegment != nullptr) {
+        for (int i = 0; i < numberSeatingRows; i++) {
             delete[] seatOfSegment[i];
         }
         delete[] seatOfSegment;
@@ -157,29 +138,10 @@ void Segment::clearSeats()
     }
 }
 
-bool Segment::isEmpty()
-{
-    for (int i = 0; i < numberSeatingRows; ++i) 
-    {
-        for (int j = 0; j < numberSeatingColumns; ++j) 
-        {
-            if (seatOfSegment[i][j] == "XX") 
-            {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-bool Segment::hasReservedSeats()
-{
-    for (int i = 0; i < numberSeatingRows; ++i)
-    {
-        for (int j = 0; j < numberSeatingColumns; ++j)
-        {
-            if (seatOfSegment[i][j] == "XX")
-            {
+bool Segment::hasReservedSeats() {
+    for (int row = 0; row < numberSeatingRows; row++) {
+        for (int col = 0; col < numberSeatingColumns; col++) {
+            if (seatOfSegment[row][col].getFillColor() == Color::Red) {
                 return true;
             }
         }
@@ -187,7 +149,20 @@ bool Segment::hasReservedSeats()
     return false;
 }
 
-string** Segment::getSeatOfSegment()
-{
-    return seatOfSegment;
+string Segment::handleSeatClick(RenderWindow& window) {
+    
+    for (int row = 0; row < numberSeatingRows; row++) {
+        for (int col = 0; col < numberSeatingColumns; col++) {
+            if (seatOfSegment[row][col].ButtonIsClicked(window)) {
+                if (seatOfSegment[row][col].getFillColor() == Color::Green) {
+                    seatOfSegment[row][col].setFillColor(Color::Red);
+                    return seatOfSegment[row][col].getText();
+                }
+                else {
+                    return "";
+                }
+            }
+        }
+    }
+    return "";
 }
